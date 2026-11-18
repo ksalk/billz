@@ -1,0 +1,56 @@
+[tools]
+dotnet = "10.0.101"
+node = "26.12.1"
+pnpm = "12.15.0"
+
+[env]
+DOTNET_CLI_TELEMETRY_OPTOUT = "1"
+DOTNET_NOLOGO = "1"
+
+[tasks.setup]
+description = "Install .NET tools and all dependencies"
+run = [
+  "dotnet restore Billz.sln --locked-mode",
+  "pnpm --dir frontend install --frozen-lockfile",
+]
+
+[tasks.dev]
+description = "Run the API and frontend dev servers together"
+run = "bash scripts/dev.sh"
+
+[tasks.lint]
+description = "Check .NET formatting, frontend lint and TypeScript types"
+run = [
+  "dotnet format Billz.sln --verify-no-changes --no-restore",
+  "pnpm --dir frontend run lint",
+  "pnpm --dir frontend run typecheck",
+]
+
+[tasks.test]
+description = "Run backend and frontend tests"
+run = [
+  "dotnet test Billz.sln",
+  "pnpm --dir frontend run test",
+]
+
+[tasks.build]
+description = "Build the SPA and publish the API"
+run = [
+  "pnpm --dir frontend run build",
+  "dotnet publish src/Billz.Api/Billz.Api.csproj -c Release -o artifacts/publish",
+]
+
+[tasks.format]
+description = "Apply server and frontend formatting"
+run = [
+  "dotnet format Billz.sln",
+  "pnpm --dir frontend run format",
+]
+
+[tasks.verify]
+description = "Run the full local gate"
+run = [
+  "mise run lint",
+  "mise run test",
+  "mise run build",
+]

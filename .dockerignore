@@ -1,0 +1,14 @@
+.git
+.github
+.env
+.env.*
+**/bin
+**/obj
+**/node_modules
+artifacts
+data
+tests
+e2e
+frontend/dist
+src/Billz.Api/wwwroot
+README.md

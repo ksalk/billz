@@ -1,0 +1,35 @@
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+
+# .NET
+**/bin/
+**/obj/
+artifacts/
+TestResults/
+*.user
+*.suo
+
+# SQLite data
+/data/
+*.db
+*.db-shm
+*.db-wal
+
+# Frontend
+node_modules/
+frontend/dist/
+src/Billz.Api/wwwroot/
+
+# Test output
+e2e/test-results/
+e2e/playwright-report/
+frontend/coverage/
+
+# Editors and OS
+.vs/
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
