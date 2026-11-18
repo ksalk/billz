@@ -1,21 +1,33 @@
+using Billz.Api.Infrastructure;
+
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.AddServerHeader = false;
+    options.Limits.MaxRequestBodySize = ServerLimits.MaxRequestBodyBytes;
+});
 
 var app = builder.Build();
 
-app.Use(async (context, next) =>
-{
-    context.Response.OnStarting(() =>
+app.UseBillzSecurityHeaders();
+
+app.Use(
+    async (context, next) =>
     {
-        if (string.IsNullOrEmpty(context.Response.Headers.CacheControl))
+        context.Response.OnStarting(() =>
         {
-            context.Response.Headers.CacheControl = "no-cache";
-        }
+            if (string.IsNullOrEmpty(context.Response.Headers.CacheControl))
+            {
+                context.Response.Headers.CacheControl = "no-cache";
+            }
 
-        return Task.CompletedTask;
-    });
+            return Task.CompletedTask;
+        });
 
-    await next();
-});
+        await next();
+    }
+);
 
 app.UseDefaultFiles();
 app.UseStaticFiles(new StaticFileOptions
@@ -28,6 +40,10 @@ app.UseStaticFiles(new StaticFileOptions
                 : "no-cache";
     },
 });
+
+app.UseBillzRequestGuard(
+    builder.Configuration.GetSection("Billz:AllowedOrigins").Get<string[]>() ?? []
+);
 
 app.MapMethods(
     "/api/health",
@@ -42,6 +58,10 @@ app.MapMethods(
 );
 
 app.MapFallbackToFile("index.html");
+
+app.Logger.LogWarning(
+    "Authentication is disabled. Run Billz only on a trusted private network."
+);
 
 app.Run();
 

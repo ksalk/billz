@@ -60,6 +60,17 @@ device that can reach the port can read and change all data. Keep it on a truste
 LAN, do not port-forward it, and do not put it behind a public reverse proxy
 without adding authentication first.
 
+The same-origin/JSON request guard is header-based hardening only. It is not
+authentication or an authorization boundary; clients that omit browser
+`Origin`/`Sec-Fetch-Site` headers (such as `curl` or a script on the LAN) are not
+constrained by it.
+
+Run Billz directly on Kestrel. If TLS terminates at a reverse proxy, add the
+external origin to `Billz:AllowedOrigins`; forwarded headers are not trusted
+automatically. Plain-HTTP proxies must preserve the original `Host`, otherwise
+browser mutations will be rejected. HSTS is only emitted when Kestrel itself
+terminates TLS; a TLS-terminating proxy must add its own HSTS header.
+
 ## License
 
 MIT. See [LICENSE](LICENSE).
