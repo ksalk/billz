@@ -1,10 +1,14 @@
 import { A, useNavigate } from "@solidjs/router";
-import { createResource, createSignal, Show } from "solid-js";
+import { createResource, createSignal, onCleanup, Show } from "solid-js";
 import {
+  ApiError,
   errorMessage,
   getConfig,
   getOccurrences,
   type Occurrence,
+  type OccurrenceStatus,
+  resetOccurrence,
+  saveOccurrence,
 } from "../api";
 import { CalendarGrid } from "../components/CalendarGrid";
 import { DayDialog } from "../components/DayDialog";
@@ -12,10 +16,12 @@ import { OccurrenceDialog } from "../components/OccurrenceDialog";
 import {
   addMonths,
   calendarRange,
+  formatIsoDate,
   isoDate,
   monthKey,
   monthLabel,
   startOfMonth,
+  todayIso,
 } from "../lib/dates";
 import { createToday } from "../lib/today";
 
@@ -25,6 +31,19 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = createSignal<Date | null>(null);
   const [selectedOccurrence, setSelectedOccurrence] =
     createSignal<Occurrence | null>(null);
+  const [actionKey, setActionKey] = createSignal<string | null>(null);
+  const [actionError, setActionError] = createSignal<string | null>(null);
+  const [actionNotice, setActionNotice] = createSignal("");
+  const [cooldown, setCooldown] = createSignal(false);
+  let cooldownTimer: ReturnType<typeof setTimeout> | undefined;
+
+  const locked = () => actionKey() !== null || cooldown();
+
+  onCleanup(() => {
+    if (cooldownTimer) {
+      clearTimeout(cooldownTimer);
+    }
+  });
 
   const [config, { refetch: refetchConfig }] = createResource(0, getConfig);
   const [occurrences, { refetch }] = createResource(
@@ -49,8 +68,107 @@ export default function CalendarPage() {
     navigate(`/bills?new=${isoDate(date)}`);
   };
 
+  const openDay = (date: Date) => {
+    setActionNotice("");
+    setSelectedDay(date);
+  };
+
+  const occurrenceKey = (occurrence: Occurrence) =>
+    `${occurrence.billId}:${occurrence.dueDate}`;
+
+  const actionCooldownMs = 800;
+
+  const setOccurrenceStatus = async (
+    occurrence: Occurrence,
+    status: OccurrenceStatus,
+  ) => {
+    if (locked() || occurrence.status === status) {
+      return;
+    }
+
+    const key = occurrenceKey(occurrence);
+    const dueDate = formatIsoDate(occurrence.dueDate);
+
+    setActionError(null);
+    setActionNotice("");
+    setActionKey(key);
+
+    try {
+      if (status === "pending") {
+        await resetOccurrence(occurrence.billId, occurrence.dueDate);
+      } else if (status === "paid") {
+        await saveOccurrence(occurrence.billId, occurrence.dueDate, {
+          status: "paid",
+          paidOn: todayIso(),
+        });
+      } else {
+        await saveOccurrence(occurrence.billId, occurrence.dueDate, {
+          status: "skipped",
+        });
+      }
+
+      // Refetch instead of inventing client state. This keeps history rows and
+      // schedule edits in sync and supersedes any older in-flight list fetch.
+      await refetch();
+
+      if (occurrences.error) {
+        setSelectedDay(null);
+        setSelectedOccurrence(null);
+        setActionNotice(
+          `${occurrence.billName} due ${dueDate} was saved, but the calendar could not refresh.`,
+        );
+      } else {
+        setActionNotice(
+          status === "paid"
+            ? `${occurrence.billName} due ${dueDate} marked paid.`
+            : status === "skipped"
+              ? `${occurrence.billName} due ${dueDate} marked skipped.`
+              : `${occurrence.billName} due ${dueDate} reset.`,
+        );
+      }
+
+      if (status === "pending" && !occurrences.error) {
+        const selector = selectedDay()
+          ? '[aria-label="Close day dialog"]'
+          : `[data-calendar-date="${occurrence.dueDate}"]`;
+
+        setTimeout(() => {
+          document.querySelector<HTMLElement>(selector)?.focus();
+        }, 0);
+      }
+
+      setCooldown(true);
+      cooldownTimer = setTimeout(() => setCooldown(false), actionCooldownMs);
+    } catch (caught) {
+      const detail =
+        caught instanceof ApiError
+          ? Object.values(caught.errors ?? {})
+              .flat()
+              .at(0)
+          : undefined;
+
+      setActionError(
+        detail
+          ? `${occurrence.billName} due ${dueDate}: ${detail}`
+          : errorMessage(caught),
+      );
+
+      if (caught instanceof ApiError && caught.status < 500) {
+        await refetch();
+      }
+    } finally {
+      setActionKey(null);
+    }
+  };
+
   return (
     <section class="page">
+      <Show when={!selectedDay()}>
+        <p class="sr-only" role="status">
+          {actionNotice()}
+        </p>
+      </Show>
+
       <header class="page-head">
         <div>
           <p class="eyebrow">Calendar</p>
@@ -88,6 +206,20 @@ export default function CalendarPage() {
           </A>
         </div>
       </header>
+
+      <Show when={actionError()}>
+        <div class="error-card" role="alert">
+          <strong>Could not update this payment.</strong>
+          <p>{actionError()}</p>
+          <button
+            type="button"
+            class="button ghost"
+            onClick={() => setActionError(null)}
+          >
+            Dismiss
+          </button>
+        </div>
+      </Show>
 
       <Show when={occurrences.error || config.error}>
         <div class="error-card" role="alert">
@@ -129,8 +261,12 @@ export default function CalendarPage() {
                     today={today()}
                     occurrences={items()}
                     currency={loadedConfig().currency}
-                    onSelectOccurrence={setSelectedOccurrence}
-                    onSelectDay={setSelectedDay}
+                    busyKey={actionKey()}
+                    locked={locked()}
+                    onSetStatus={(occurrence, status) => {
+                      void setOccurrenceStatus(occurrence, status);
+                    }}
+                    onSelectDay={openDay}
                     onAddForDay={addForDay}
                   />
                 )}
@@ -151,8 +287,19 @@ export default function CalendarPage() {
                     today={today()}
                     occurrences={occurrencesForDay(day)}
                     currency={loadedConfig().currency}
-                    onClose={() => setSelectedDay(null)}
-                    onSelectOccurrence={setSelectedOccurrence}
+                    busyKey={actionKey()}
+                    locked={locked()}
+                    actionError={actionError()}
+                    actionNotice={actionNotice()}
+                    onDismissError={() => setActionError(null)}
+                    onClose={() => {
+                      setSelectedDay(null);
+                      setActionNotice("");
+                    }}
+                    onSetStatus={(occurrence, status) => {
+                      void setOccurrenceStatus(occurrence, status);
+                    }}
+                    onShowDetails={setSelectedOccurrence}
                     onAdd={() => {
                       setSelectedDay(null);
                       addForDay(day);
@@ -167,10 +314,43 @@ export default function CalendarPage() {
                     occurrence={occurrence}
                     currency={loadedConfig().currency}
                     onClose={() => setSelectedOccurrence(null)}
-                    onSaved={() => {
-                      setSelectedOccurrence(null);
-                      setSelectedDay(null);
-                      void refetch();
+                    onSaved={async () => {
+                      const dueDate = formatIsoDate(occurrence.dueDate);
+                      setActionError(null);
+                      setActionNotice("");
+                      setActionKey(
+                        `${occurrence.billId}:${occurrence.dueDate}`,
+                      );
+
+                      try {
+                        await refetch();
+
+                        setActionNotice(
+                          occurrences.error
+                            ? `${occurrence.billName} due ${dueDate} was saved, but the calendar could not refresh.`
+                            : `${occurrence.billName} due ${dueDate} updated.`,
+                        );
+                        await new Promise((resolve) =>
+                          setTimeout(resolve, 250),
+                        );
+                      } finally {
+                        setActionKey(null);
+                        setSelectedOccurrence(null);
+                        setSelectedDay(null);
+                      }
+                    }}
+                    onSaveFailed={() => {
+                      void (async () => {
+                        setActionKey(
+                          `${occurrence.billId}:${occurrence.dueDate}`,
+                        );
+
+                        try {
+                          await refetch();
+                        } finally {
+                          setActionKey(null);
+                        }
+                      })();
                     }}
                   />
                 )}

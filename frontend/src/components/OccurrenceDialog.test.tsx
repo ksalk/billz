@@ -28,6 +28,7 @@ function renderDialog(
   item: Occurrence = occurrence,
   onClose = vi.fn(),
   onSaved = vi.fn(),
+  onSaveFailed = vi.fn(),
 ) {
   render(() => (
     <OccurrenceDialog
@@ -35,10 +36,11 @@ function renderDialog(
       currency="PLN"
       onClose={onClose}
       onSaved={onSaved}
+      onSaveFailed={onSaveFailed}
     />
   ));
 
-  return { onClose, onSaved };
+  return { onClose, onSaved, onSaveFailed };
 }
 
 describe("OccurrenceDialog", () => {
@@ -120,13 +122,34 @@ describe("OccurrenceDialog", () => {
         status: ["Status must be paid or skipped."],
       }),
     );
-    renderDialog();
+    const { onSaveFailed } = renderDialog();
 
     fireEvent.click(screen.getByRole("button", { name: "Paid" }));
     fireEvent.click(screen.getByRole("button", { name: "Save" }));
 
     expect(
       await screen.findByText("Status must be paid or skipped."),
+    ).toBeTruthy();
+    expect(onSaveFailed).not.toHaveBeenCalled();
+  });
+
+  it("requests reconciliation when a save may have committed", async () => {
+    const onSaveFailed = vi.fn();
+    vi.mocked(api.saveOccurrence).mockRejectedValue(
+      new api.ApiError(500, "Server error"),
+    );
+    renderDialog(occurrence, vi.fn(), vi.fn(), onSaveFailed);
+
+    fireEvent.click(screen.getByRole("button", { name: "Paid" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      expect(onSaveFailed).toHaveBeenCalled();
+    });
+    expect(
+      await screen.findByText(
+        "Could not confirm this payment. Check the calendar before retrying.",
+      ),
     ).toBeTruthy();
   });
 });

@@ -10,14 +10,19 @@ what was actually paid or skipped.
 
 ## Features
 
-- Month calendar with due tiles, overdue highlighting, and paid/skipped status.
+- Month calendar with due tiles for the first two items per day, overdue
+  highlighting, and paid/skipped status; the day list shows every item for that
+  day.
 - Bills table with add, edit, and delete.
 - Structured schedules: one-off, every N weeks, every N months, quarterly,
   semi-annual, and every N years (interval 1–60).
 - Month-end clamping: a bill anchored to the 31st is due on the last day of
   shorter months, including leap-year February.
-- Mark an occurrence paid with a paid date and actual amount, skip it, or reset
-  it to pending. Payment history stays visible after a schedule edit.
+- Mark an occurrence paid or skipped directly from its calendar tile on larger
+  screens, or from the day list on phones. Quick actions record today's date and
+  the current bill amount; use Reset to return a handled occurrence to pending.
+  Use Details in the day list to change the paid date or amount. Payment history
+  stays visible after a schedule edit.
 - Optional category and free-text notes per bill.
 - Single currency configured for the deployment, with locale-aware formatting.
 - One SQLite database file and one container; no external services or background

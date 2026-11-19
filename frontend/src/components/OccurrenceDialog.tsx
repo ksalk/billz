@@ -13,7 +13,8 @@ interface OccurrenceDialogProps {
   occurrence: Occurrence;
   currency: string;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: () => void | Promise<void>;
+  onSaveFailed?: () => void;
 }
 
 const STATUS_OPTIONS: Array<{ value: OccurrenceStatus; label: string }> = [
@@ -115,13 +116,16 @@ export function OccurrenceDialog(props: OccurrenceDialogProps) {
         );
       }
 
-      props.onSaved();
+      await props.onSaved();
     } catch (caught) {
-      if (caught instanceof ApiError) {
+      if (caught instanceof ApiError && caught.status < 500) {
         setError(caught.message);
         setFieldErrors(caught.errors ?? {});
       } else {
-        setError("Could not save this payment. Try again.");
+        props.onSaveFailed?.();
+        setError(
+          "Could not confirm this payment. Check the calendar before retrying.",
+        );
       }
     } finally {
       setSaving(false);

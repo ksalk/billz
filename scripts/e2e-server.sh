@@ -14,17 +14,33 @@ if [[ ! -f "$root/artifacts/publish/wwwroot/index.html" ]]; then
   exit 1
 fi
 
-if find "$root/src" "$root/Directory.Build.props" "$root/global.json" "$root/Billz.sln" \
-  \( -path '*/bin' -o -path '*/obj' \) -prune -o \
-  -type f -newer "$root/artifacts/publish/Billz.Api.dll" -print -quit | grep -q .; then
+api_changed="$(
+  find "$root/src" "$root/Directory.Build.props" "$root/global.json" "$root/Billz.sln" \
+    \( -path '*/bin' -o -path '*/obj' -o -path "$root/src/Billz.Api/wwwroot" \) -prune -o \
+    -type f -newer "$root/artifacts/publish/Billz.Api.dll" -print -quit
+)" || {
+  echo "Could not check API freshness." >&2
+  exit 1
+}
+
+if [[ -n "$api_changed" ]]; then
   echo "Published API is older than source files. Run 'mise run build' first." >&2
   exit 1
 fi
 
-if find "$root/frontend/src" "$root/frontend/public" "$root/frontend/index.html" \
-  "$root/frontend/package.json" "$root/frontend/vite.config.ts" "$root/frontend/tsconfig.json" \
-  -type f -newer "$root/artifacts/publish/wwwroot/index.html" \
-  -print -quit | grep -q .; then
+spa_changed="$(
+  find "$root/frontend/src" "$root/frontend/public" "$root/frontend/index.html" \
+    "$root/frontend/package.json" "$root/frontend/pnpm-lock.yaml" \
+    "$root/frontend/pnpm-workspace.yaml" "$root/frontend/vite.config.ts" \
+    "$root/frontend/tsconfig.json" \
+    -type f -newer "$root/artifacts/publish/wwwroot/index.html" \
+    -print -quit
+)" || {
+  echo "Could not check SPA freshness." >&2
+  exit 1
+}
+
+if [[ -n "$spa_changed" ]]; then
   echo "Published SPA is older than source files. Run 'mise run build' first." >&2
   exit 1
 fi

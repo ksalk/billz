@@ -1,5 +1,5 @@
-import { createMemo, For, Show } from "solid-js";
-import type { Occurrence } from "../api";
+import { createMemo, For, Index, Show } from "solid-js";
+import type { Occurrence, OccurrenceStatus } from "../api";
 import {
   calendarDays,
   formatIsoDate,
@@ -14,7 +14,9 @@ interface CalendarGridProps {
   today: string;
   occurrences: Occurrence[];
   currency: string;
-  onSelectOccurrence: (occurrence: Occurrence) => void;
+  busyKey: string | null;
+  locked: boolean;
+  onSetStatus: (occurrence: Occurrence, status: OccurrenceStatus) => void;
   onSelectDay: (date: Date) => void;
   onAddForDay: (date: Date) => void;
 }
@@ -49,6 +51,15 @@ export function tileStatusLabel(status: CalendarTileStatus): string {
   }
 }
 
+export function occurrenceActionLabel(
+  occurrence: Occurrence,
+  target: "paid" | "skipped",
+): string {
+  return `Mark ${occurrence.billName} due ${formatIsoDate(
+    occurrence.dueDate,
+  )} as ${target}`;
+}
+
 export function CalendarGrid(props: CalendarGridProps) {
   const days = createMemo(() => calendarDays(props.month));
   const activeMonth = createMemo(() => props.month.getMonth());
@@ -78,7 +89,7 @@ export function CalendarGrid(props: CalendarGridProps) {
           {(date) => {
             const key = isoDate(date);
             const items = () => byDate().get(key) ?? [];
-            const visible = () => items().slice(0, 3);
+            const visible = () => items().slice(0, 2);
             const outside = () => date.getMonth() !== activeMonth();
             const isToday = () => key === props.today;
             const summaryStatus = (): CalendarTileStatus => {
@@ -109,6 +120,7 @@ export function CalendarGrid(props: CalendarGridProps) {
                 <div class="day-head">
                   <button
                     type="button"
+                    data-calendar-date={key}
                     class="day-number"
                     onClick={() => props.onSelectDay(date)}
                     aria-label={`Open ${formatIsoDate(key)}, ${items().length} bills`}
@@ -133,41 +145,136 @@ export function CalendarGrid(props: CalendarGridProps) {
                 </Show>
 
                 <div class="calendar-tiles">
-                  <For each={visible()}>
-                    {(occurrence) => {
+                  <Index each={visible()}>
+                    {(item) => {
+                      const occurrence = item;
                       const status = () =>
-                        occurrenceTileStatus(occurrence, props.today);
+                        occurrenceTileStatus(occurrence(), props.today);
+                      const busy = () =>
+                        props.busyKey ===
+                        `${occurrence().billId}:${occurrence().dueDate}`;
+                      const unavailable = () => props.locked || busy();
+                      const choose = (target: "paid" | "skipped") => {
+                        if (
+                          !unavailable() &&
+                          occurrence().status === "pending"
+                        ) {
+                          props.onSetStatus(occurrence(), target);
+                        }
+                      };
+                      const statusTitle = (target: "paid" | "skipped") => {
+                        if (occurrence().status === target) {
+                          return `Already marked ${target}`;
+                        }
+
+                        if (occurrence().status !== "pending") {
+                          return "Reset first to change status";
+                        }
+
+                        return undefined;
+                      };
+                      const reset = () => {
+                        if (!unavailable()) {
+                          props.onSetStatus(occurrence(), "pending");
+                        }
+                      };
 
                       return (
-                        <button
-                          type="button"
+                        <fieldset
                           class={`tile tile-${status()}`}
-                          onClick={() => props.onSelectOccurrence(occurrence)}
-                          aria-label={`${occurrence.billName}, ${formatMinor(
-                            occurrence.amountMinor,
-                            props.currency,
-                          )}, ${tileStatusLabel(status())}`}
+                          aria-busy={busy() ? "true" : undefined}
                         >
-                          <span class="tile-dot" aria-hidden="true" />
-                          <span class="tile-name">{occurrence.billName}</span>
-                          <span class="tile-amount">
-                            {formatMinor(
-                              occurrence.amountMinor,
-                              props.currency,
-                            )}
-                          </span>
-                        </button>
+                          <legend class="sr-only">{`${
+                            occurrence().billName
+                          }, ${formatMinor(
+                            occurrence().amountMinor,
+                            props.currency,
+                          )}, ${tileStatusLabel(status())}`}</legend>
+                          <div class="tile-main">
+                            <span class="tile-dot" aria-hidden="true" />
+                            <span class="tile-name">
+                              {occurrence().billName}
+                            </span>
+                            <span class="tile-amount">
+                              {formatMinor(
+                                occurrence().amountMinor,
+                                props.currency,
+                              )}
+                            </span>
+                          </div>
+
+                          <div class="tile-actions">
+                            <button
+                              type="button"
+                              class="tile-action"
+                              classList={{
+                                "is-active": occurrence().status === "paid",
+                              }}
+                              aria-pressed={occurrence().status === "paid"}
+                              aria-label={occurrenceActionLabel(
+                                occurrence(),
+                                "paid",
+                              )}
+                              title={statusTitle("paid")}
+                              aria-disabled={
+                                unavailable() ||
+                                occurrence().status !== "pending"
+                                  ? "true"
+                                  : undefined
+                              }
+                              onClick={() => choose("paid")}
+                            >
+                              Paid
+                            </button>
+                            <button
+                              type="button"
+                              class="tile-action"
+                              classList={{
+                                "is-active": occurrence().status === "skipped",
+                              }}
+                              aria-pressed={occurrence().status === "skipped"}
+                              aria-label={occurrenceActionLabel(
+                                occurrence(),
+                                "skipped",
+                              )}
+                              title={statusTitle("skipped")}
+                              aria-disabled={
+                                unavailable() ||
+                                occurrence().status !== "pending"
+                                  ? "true"
+                                  : undefined
+                              }
+                              onClick={() => choose("skipped")}
+                            >
+                              Skipped
+                            </button>
+                          </div>
+
+                          <Show when={occurrence().status !== "pending"}>
+                            <button
+                              type="button"
+                              class="tile-reset"
+                              aria-label={`Reset ${occurrence().billName} due ${formatIsoDate(
+                                occurrence().dueDate,
+                              )} to pending`}
+                              aria-disabled={unavailable() ? "true" : undefined}
+                              onClick={reset}
+                            >
+                              Reset
+                            </button>
+                          </Show>
+                        </fieldset>
                       );
                     }}
-                  </For>
+                  </Index>
 
-                  <Show when={items().length > 3}>
+                  <Show when={items().length > 2}>
                     <button
                       type="button"
                       class="more-link"
                       onClick={() => props.onSelectDay(date)}
                     >
-                      +{items().length - 3} more
+                      +{items().length - 2} more
                     </button>
                   </Show>
                 </div>
