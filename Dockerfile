@@ -11,7 +11,9 @@ RUN pnpm install --frozen-lockfile
 COPY frontend/ ./
 RUN pnpm run build
 
-FROM mcr.microsoft.com/dotnet/sdk:10.0.101@sha256:5504edd1267dd4deab3443f960cfab219249c8bd935fbcc358f1c24aeae23fe0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.103@sha256:e362a8dbcd691522456da26a5198b8f3ca1d7641c95624fadc5e3e82678bd08a AS build
+
+ARG TARGETARCH
 
 WORKDIR /src
 COPY global.json Directory.Build.props ./
@@ -21,13 +23,26 @@ RUN dotnet restore src/Billz.Api/Billz.Api.csproj --locked-mode
 
 COPY src/Billz.Api/ src/Billz.Api/
 COPY --from=ui /build/src/Billz.Api/wwwroot src/Billz.Api/wwwroot/
-RUN dotnet publish src/Billz.Api/Billz.Api.csproj -c Release -o /app --no-restore /p:UseAppHost=false
+RUN dotnet publish src/Billz.Api/Billz.Api.csproj -c Release -o /app --no-restore /p:UseAppHost=false \
+    && case "$TARGETARCH" in \
+         amd64) native_rid="linux-x64" ;; \
+         arm64) native_rid="linux-arm64" ;; \
+         *) echo "Unsupported architecture: $TARGETARCH" >&2; exit 1 ;; \
+       esac \
+    && rm -rf /app/BuildHost-net472 /app/BuildHost-netcore \
+    && find /app/runtimes -mindepth 1 -maxdepth 1 -type d ! -name "$native_rid" -exec rm -rf {} + \
+    && rm -f /app/appsettings.Development.json /app/web.config
 
-FROM mcr.microsoft.com/dotnet/aspnet:10.0.1@sha256:eb4c0af832f281ac1a83fa78c09da328cb9df2d7d608bdebc21ce843d66d896f AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.15@sha256:12b1135f5f8b3c0a214f2a680ff2033dff4f684f445d6c697d9524ceeb303586 AS runtime
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl \
     && rm -rf /var/lib/apt/lists/*
+
+LABEL org.opencontainers.image.title="Billz" \
+      org.opencontainers.image.description="Self-hosted bill and recurring-payment tracker" \
+      org.opencontainers.image.licenses="MIT" \
+      org.opencontainers.image.source="https://github.com/ksalk/billz"
 
 WORKDIR /app
 COPY --from=build --chown=app:app /app ./
