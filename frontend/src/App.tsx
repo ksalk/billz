@@ -1,21 +1,49 @@
+import {
+  A,
+  Navigate,
+  Route,
+  Router,
+  type RouteSectionProps,
+} from "@solidjs/router";
 import type { Component } from "solid-js";
+import BillsPage from "./routes/BillsPage";
+import CalendarPage from "./routes/CalendarPage";
+import NotFoundPage from "./routes/NotFoundPage";
 
-const App: Component = () => (
-  <main class="app-shell">
+const Layout: Component<RouteSectionProps> = (props) => (
+  <div class="app-shell">
     <header class="app-header">
-      <h1>Billz</h1>
-      <p class="tagline">
-        Bills and recurring payments, without the spreadsheet.
-      </p>
+      <A href="/calendar" class="brand" aria-label="Billz calendar">
+        <span class="brand-mark">B</span>
+        <span>Billz</span>
+      </A>
+
+      <nav class="app-nav" aria-label="Main navigation">
+        <A href="/calendar" activeClass="is-active" end>
+          Calendar
+        </A>
+        <A href="/bills" activeClass="is-active" end>
+          Bills
+        </A>
+      </nav>
     </header>
 
-    <section class="placeholder-card">
-      <h2>Calendar and bills are on the way</h2>
-      <p>
-        The API is available at <code>/api/health</code>.
-      </p>
-    </section>
-  </main>
+    <main class="app-main">{props.children}</main>
+
+    <footer class="app-footer">
+      <span>Billz</span>
+      <span>Private, local bill tracking</span>
+    </footer>
+  </div>
+);
+
+const App: Component = () => (
+  <Router root={Layout}>
+    <Route path="/" component={() => <Navigate href="/calendar" />} />
+    <Route path="/calendar" component={CalendarPage} />
+    <Route path="/bills" component={BillsPage} />
+    <Route path="*" component={NotFoundPage} />
+  </Router>
 );
 
 export default App;

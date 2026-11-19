@@ -70,6 +70,9 @@ container packaging commit.
 
 Copy `.env.example` to `.env` for local container use. Never commit `.env`.
 
+When running the API directly instead of through Compose, use the standard .NET
+configuration name `Billz__Currency`; Compose maps `BILLZ_CURRENCY` to it.
+
 ## Security
 
 Billz deliberately ships without authentication, by project decision. Every

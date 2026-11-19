@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Billz.Api.Api.Bills;
+using Billz.Api.Api.Config;
 using Billz.Api.Api.Occurrences;
 using Billz.Api.Data;
 using Billz.Api.Infrastructure;
@@ -12,6 +13,18 @@ var databasePath = DatabaseExtensions.ResolveDatabasePath(
     builder.Configuration,
     builder.Environment
 );
+var currency = builder.Configuration["Billz:Currency"];
+
+if (
+    string.IsNullOrWhiteSpace(currency)
+    || currency.Length != 3
+    || !currency.All(char.IsAsciiLetter)
+)
+{
+    throw new InvalidOperationException(
+        "Billz:Currency must be a three-letter ISO 4217 code."
+    );
+}
 
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -19,6 +32,7 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = ServerLimits.MaxRequestBodyBytes;
 });
 builder.Services.AddBillzDatabase(databasePath);
+builder.Services.AddSingleton(new BillzSettings(currency.ToUpperInvariant()));
 builder.Services.Configure<RouteHandlerOptions>(options =>
 {
     options.ThrowOnBadRequest = true;
@@ -136,6 +150,7 @@ app.MapMethods(
     }
 );
 
+app.MapConfigEndpoint();
 app.MapBillEndpoints();
 app.MapOccurrenceEndpoints();
 
