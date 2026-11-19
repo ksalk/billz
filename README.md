@@ -102,7 +102,7 @@ These variables are consumed by the Docker Compose stack.
 |---|---|---|
 | `BILLZ_CURRENCY` | ISO 4217 currency code | required |
 | `BILLZ_BIND` | Host interface for the published port | `127.0.0.1` |
-| `BILLZ_ALLOWED_HOSTS` | Accepted HTTP Host values, semicolon-separated | `localhost;127.0.0.1` |
+| `BILLZ_ALLOWED_HOSTS` | Accepted HTTP Host values, semicolon-separated | `localhost;127.0.0.1;[::1]` |
 | `BILLZ_PORT` | Host port for Docker Compose | `8080` |
 | `BILLZ_IMAGE` | Image name/tag for Compose | `billz:local` |
 | `BILLZ_VOLUME_NAME` | Docker volume for SQLite | `billz-data` |
