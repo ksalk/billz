@@ -41,6 +41,14 @@ run = [
   "dotnet publish src/Billz.Api/Billz.Api.csproj -c Release -o artifacts/publish",
 ]
 
+[tasks.docker-build]
+description = "Build the Billz container image"
+run = "docker build -t ${BILLZ_IMAGE:-billz:local} ."
+
+[tasks."verify:docker"]
+description = "Build Compose from a clean state and smoke-test the container"
+run = "bash scripts/docker-smoke.sh"
+
 [tasks."test:e2e"]
 description = "Build and run the Playwright critical journey"
 run = [

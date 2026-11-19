@@ -10,5 +10,9 @@ data
 tests
 e2e
 frontend/dist
+frontend/e2e
+frontend/playwright-report
+frontend/test-results
+frontend/playwright.config.ts
 src/Billz.Api/wwwroot
 README.md

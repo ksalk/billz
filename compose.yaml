@@ -1,0 +1,36 @@
+name: billz
+
+services:
+  billz:
+    image: ${BILLZ_IMAGE:-billz:local}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Billz__Currency: ${BILLZ_CURRENCY:?Set BILLZ_CURRENCY in .env}
+      Billz__DatabasePath: /data/billz.db
+    ports:
+      - "${BILLZ_BIND:-127.0.0.1}:${BILLZ_PORT:-8080}:8080"
+    volumes:
+      - billz-data:/data
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp:size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    init: true
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  billz-data:
+    name: ${BILLZ_VOLUME_NAME:-billz-data}
