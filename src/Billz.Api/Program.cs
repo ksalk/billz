@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Billz.Api.Api.Bills;
+using Billz.Api.Api.Occurrences;
 using Billz.Api.Data;
 using Billz.Api.Infrastructure;
 using Microsoft.AspNetCore.Diagnostics;
@@ -136,6 +137,7 @@ app.MapMethods(
 );
 
 app.MapBillEndpoints();
+app.MapOccurrenceEndpoints();
 
 app.MapMethods(
     "/api/{**rest}",

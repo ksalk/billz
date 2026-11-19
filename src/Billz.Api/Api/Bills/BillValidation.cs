@@ -17,6 +17,8 @@ public static class BillValidation
             ["yearly"] = BillFrequency.Yearly,
         };
 
+    public static bool IsSupportedDate(DateOnly date) => date >= MinDate && date <= MaxDate;
+
     public static bool TryParseFrequency(string? value, out BillFrequency frequency)
     {
         frequency = default;
