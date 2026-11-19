@@ -84,6 +84,24 @@ export function getBills(): Promise<Bill[]> {
   return request<Bill[]>("/api/bills");
 }
 
+export function createBill(input: BillInput): Promise<Bill> {
+  return request<Bill>("/api/bills", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateBill(id: number, input: BillInput): Promise<Bill> {
+  return request<Bill>(`/api/bills/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteBill(id: number): Promise<void> {
+  return request<void>(`/api/bills/${id}`, { method: "DELETE" });
+}
+
 export function getOccurrences(
   from: string,
   to: string,
