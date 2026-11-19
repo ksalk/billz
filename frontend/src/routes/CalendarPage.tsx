@@ -16,8 +16,8 @@ import {
   monthKey,
   monthLabel,
   startOfMonth,
-  todayIso,
 } from "../lib/dates";
+import { createToday } from "../lib/today";
 
 export default function CalendarPage() {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ export default function CalendarPage() {
     return data?.key === monthKey(month()) ? data.items : undefined;
   };
 
-  const today = todayIso();
+  const today = createToday();
   const occurrencesForDay = (date: Date) => {
     const key = isoDate(date);
     return (currentItems() ?? []).filter((item) => item.dueDate === key);
@@ -83,7 +83,7 @@ export default function CalendarPage() {
               →
             </button>
           </fieldset>
-          <A href={`/bills?new=${today}`} class="button primary">
+          <A href={`/bills?new=${today()}`} class="button primary">
             Add bill
           </A>
         </div>
@@ -126,7 +126,7 @@ export default function CalendarPage() {
                 {(items) => (
                   <CalendarGrid
                     month={month()}
-                    today={today}
+                    today={today()}
                     occurrences={items()}
                     currency={loadedConfig().currency}
                     onSelectOccurrence={setSelectedOccurrence}
@@ -139,7 +139,8 @@ export default function CalendarPage() {
               <Show when={currentItems()?.length === 0}>
                 <p class="empty-inline">
                   Nothing is due in this view.{" "}
-                  <A href={`/bills?new=${today}`}>Add a bill</A> to get started.
+                  <A href={`/bills?new=${today()}`}>Add a bill</A> to get
+                  started.
                 </p>
               </Show>
 
@@ -147,7 +148,7 @@ export default function CalendarPage() {
                 {(day) => (
                   <DayDialog
                     date={day}
-                    today={today}
+                    today={today()}
                     occurrences={occurrencesForDay(day)}
                     currency={loadedConfig().currency}
                     onClose={() => setSelectedDay(null)}

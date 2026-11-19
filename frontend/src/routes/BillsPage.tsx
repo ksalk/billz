@@ -12,11 +12,13 @@ import { BillFormDialog } from "../components/BillFormDialog";
 import { BillTable } from "../components/BillTable";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { todayIso } from "../lib/dates";
+import { createToday } from "../lib/today";
 
 export default function BillsPage() {
   const [params, setParams] = useSearchParams<{ new?: string }>();
   const [config, { refetch: refetchConfig }] = createResource(0, getConfig);
   const [bills, { refetch }] = createResource(0, getBills);
+  const today = createToday();
   const [editing, setEditing] = createSignal<Bill | "new" | null>(null);
   const [initialDate, setInitialDate] = createSignal(todayIso());
   const [pendingNewDate, setPendingNewDate] = createSignal<string | null>(null);
@@ -153,7 +155,7 @@ export default function BillsPage() {
                     <BillTable
                       bills={items()}
                       currency={loadedConfig().currency}
-                      today={todayIso()}
+                      today={today()}
                       onEdit={(bill) => setEditing(bill)}
                       onDelete={(bill) => {
                         setDeleteError(null);

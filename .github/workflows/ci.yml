@@ -37,8 +37,15 @@ jobs:
         run: mise run test
 
       - name: Audit dependencies
+        env:
+          DOTNET_CLI_UI_LANGUAGE: en
         run: |
-          dotnet list Billz.sln package --vulnerable --include-transitive
+          nuget_audit="$(dotnet list Billz.sln package --vulnerable --include-transitive)"
+          printf '%s\n' "$nuget_audit"
+          if grep -q 'has the following vulnerable packages' <<<"$nuget_audit"; then
+            echo "NuGet audit found vulnerable packages" >&2
+            exit 1
+          fi
           pnpm --dir frontend audit --audit-level high
 
       - name: Build
@@ -94,7 +101,7 @@ jobs:
           docker run --rm --network none \
             -v "$PWD:/repo:ro" \
             ghcr.io/gitleaks/gitleaks:v8.28.0@sha256:cdbb7c955abce02001a9f6c9f602fb195b7fadc1e812065883f695d1eeaba854 \
-            git --source /repo --redact
+            git /repo --redact
 
       - name: Scan dependencies and configuration
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
