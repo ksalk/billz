@@ -27,6 +27,7 @@ wait_healthy() {
 
 export BILLZ_CURRENCY=PLN
 export BILLZ_BIND=127.0.0.1
+export BILLZ_ALLOWED_HOSTS=127.0.0.1
 export BILLZ_PORT="$port"
 export BILLZ_IMAGE="$image"
 export BILLZ_VOLUME_NAME="$volume"

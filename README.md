@@ -17,7 +17,7 @@ what was actually paid or skipped.
 - Month-end clamping: a bill anchored to the 31st is due on the last day of
   shorter months, including leap-year February.
 - Mark an occurrence paid with a paid date and actual amount, skip it, or reset
-  it to pending.
+  it to pending. Payment history stays visible after a schedule edit.
 - Optional category and free-text notes per bill.
 - Single currency configured for the deployment, with locale-aware formatting.
 - One SQLite database file and one container; no external services or background
@@ -45,7 +45,8 @@ minor units.
 ```bash
 cp .env.example .env
 # set BILLZ_CURRENCY in .env
-# set BILLZ_BIND=0.0.0.0 to reach Billz from other LAN devices
+# to reach Billz from other LAN devices, set BILLZ_BIND=0.0.0.0 and add the
+# LAN hostname/IP to BILLZ_ALLOWED_HOSTS
 docker compose up -d --build
 ```
 
@@ -101,6 +102,7 @@ These variables are consumed by the Docker Compose stack.
 |---|---|---|
 | `BILLZ_CURRENCY` | ISO 4217 currency code | required |
 | `BILLZ_BIND` | Host interface for the published port | `127.0.0.1` |
+| `BILLZ_ALLOWED_HOSTS` | Accepted HTTP Host values, semicolon-separated | `localhost;127.0.0.1` |
 | `BILLZ_PORT` | Host port for Docker Compose | `8080` |
 | `BILLZ_IMAGE` | Image name/tag for Compose | `billz:local` |
 | `BILLZ_VOLUME_NAME` | Docker volume for SQLite | `billz-data` |
@@ -198,13 +200,21 @@ Dates are ISO `YYYY-MM-DD`; occurrence ranges are capped at 366 days; errors use
 Billz deliberately ships without authentication, by project decision. Every
 device that can reach the port can read and change all data. Keep it on a trusted
 LAN, do not port-forward it, and do not put it behind a public reverse proxy
-without adding authentication first. The Compose stack binds to `127.0.0.1` by
-default; widening `BILLZ_BIND` is an explicit exposure decision.
+without adding authentication first.
 
 The same-origin/JSON request guard is header-based hardening only. It is not
 authentication or an authorization boundary; clients that omit browser
 `Origin`/`Sec-Fetch-Site` headers (such as `curl` or a script on the LAN) are not
-constrained by it.
+constrained by it. Kestrel also restricts `Host` headers to an allowlist. Compose
+maps it from `BILLZ_ALLOWED_HOSTS`; a direct .NET run uses the standard
+`AllowedHosts` configuration key (for example
+`AllowedHosts=localhost;127.0.0.1;192.168.1.50`). Add the LAN hostname or IP when
+exposing Billz beyond localhost, and do not set the list to `*`. This blocks
+DNS-rebinding requests that use a foreign hostname.
+
+The Compose stack binds to `127.0.0.1` by default; widening `BILLZ_BIND` is an
+explicit exposure decision and requires adding the reachable hostname/IP to the
+host allowlist as well.
 
 Run Billz directly on Kestrel. If TLS terminates at a reverse proxy, add the
 external origin to `Billz:AllowedOrigins`; forwarded headers are not trusted
@@ -230,6 +240,9 @@ image. Dependabot checks NuGet, pnpm, Docker base images, and GitHub Actions.
 - **Port already in use:** change `BILLZ_PORT` in `.env` and restart Compose.
 - **Lost access after an upgrade:** keep the named volume; removing it during
   cleanup deletes the database. Restore a backup into a clean volume.
+- **HTTP 400 "Bad Request" for every request:** the requested `Host` is not in
+  the allowlist. Add the hostname or IP to `BILLZ_ALLOWED_HOSTS` for Compose, or
+  to `AllowedHosts` for a direct .NET run.
 - **Browser mutations rejected behind a proxy:** add the external origin to
   `Billz:AllowedOrigins` or run Billz directly on Kestrel as described in
   [Security](#security).

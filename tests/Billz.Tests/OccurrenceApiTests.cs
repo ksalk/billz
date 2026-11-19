@@ -272,6 +272,21 @@ public class OccurrenceApiTests : IClassFixture<BillzWebApplicationFactory>
         );
         updateResponse.EnsureSuccessStatusCode();
 
+        var beforeReset = await GetOccurrencesAsync("2026-12-01", "2026-12-31");
+        var orphaned = Assert.Single(beforeReset, item => item.BillId == bill.Id);
+        Assert.Equal("paid", orphaned.Status);
+        Assert.Equal("2026-12-01", orphaned.DueDate);
+
+        var remark = await SaveOccurrenceAsync(
+            bill.Id,
+            "2026-12-01",
+            new { status = "paid", paidOn = "2026-12-03", amountMinor = 12_300L }
+        );
+        Assert.Equal(HttpStatusCode.OK, remark.StatusCode);
+        var remarkBody = await ReadOccurrenceAsync(remark);
+        Assert.Equal("2026-12-03", remarkBody.PaidOn);
+        Assert.Equal(12_300, remarkBody.AmountPaidMinor);
+
         var reset = await _client.DeleteAsync(
             $"/api/bills/{bill.Id}/occurrences/2026-12-01"
         );

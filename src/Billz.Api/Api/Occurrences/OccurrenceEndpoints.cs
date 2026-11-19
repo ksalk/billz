@@ -69,6 +69,24 @@ public static class OccurrenceEndpoints
             }
         }
 
+        // Schedule edits leave paid/skipped rows behind. Keep those history rows
+        // visible in the requested range so they can be inspected or reset.
+        var emitted = result.Select(item => (item.BillId, item.DueDate)).ToHashSet();
+        var billsById = bills.ToDictionary(bill => bill.Id);
+
+        foreach (var row in overrideRows)
+        {
+            if (
+                emitted.Contains((row.BillId, row.DueDate))
+                || !billsById.TryGetValue(row.BillId, out var bill)
+            )
+            {
+                continue;
+            }
+
+            result.Add(OccurrenceDto.From(bill, row.DueDate, row));
+        }
+
         return Results.Ok(
             result
                 .OrderBy(item => item.DueDate)
@@ -94,7 +112,14 @@ public static class OccurrenceEndpoints
             return NotFoundBill();
         }
 
-        if (!IsScheduled(bill, dueDate))
+        var occurrence = await database.BillOccurrences.FirstOrDefaultAsync(
+            item => item.BillId == billId && item.DueDate == dueDate,
+            cancellationToken
+        );
+
+        // Existing history rows stay editable after a schedule edit; only new
+        // rows must match the bill's current schedule.
+        if (occurrence is null && !IsScheduled(bill, dueDate))
         {
             return InvalidDueDate();
         }
@@ -109,10 +134,6 @@ public static class OccurrenceEndpoints
         var isPaid = string.Equals(status, "paid", StringComparison.OrdinalIgnoreCase);
         long? amountPaid = isPaid ? request.AmountMinor ?? bill.AmountMinor : null;
         var now = DateTimeOffset.UtcNow;
-        var occurrence = await database.BillOccurrences.FirstOrDefaultAsync(
-            item => item.BillId == billId && item.DueDate == dueDate,
-            cancellationToken
-        );
 
         if (occurrence is not null)
         {
