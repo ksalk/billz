@@ -167,8 +167,8 @@ importers:
   .:
     dependencies:
       '@solidjs/router':
-        specifier: 0.16.3
-        version: 0.16.3(solid-js@1.9.19)
+        specifier: 1.0.3
+        version: 1.0.3(solid-js@1.9.19)
       solid-js:
         specifier: 1.9.19
         version: 1.9.19
@@ -181,7 +181,7 @@ importers:
         version: 1.65.1
       '@solidjs/testing-library':
         specifier: 0.8.10
-        version: 0.8.10(@solidjs/router@0.16.3(solid-js@1.9.19))(solid-js@1.9.19)
+        version: 0.8.10(@solidjs/router@1.0.3(solid-js@1.9.19))(solid-js@1.9.19)
       jsdom:
         specifier: 31.0.1
         version: 31.0.1
@@ -683,8 +683,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@solidjs/router@0.16.3':
-    resolution: {integrity: sha512-WWQkmSmSpl+15HgUktGPbeXkgWmonj4XwPOcZVHJz1EQV3dz5qWHIyQ/BKXFevor6u/0dKvC9FlUmKmDwE1QHw==}
+  '@solidjs/router@1.0.3':
+    resolution: {integrity: sha512-EULOxZNMGISNgQU+uXLtt6o4X5bIE+0HiPW0gGSOyl3HJmyClSDDHLGJ5JTHkbiyUSc6DttVvnVZYfK1a+70BA==}
     peerDependencies:
       solid-js: ^1.8.6
 
@@ -1568,16 +1568,16 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.68.5':
     optional: true
 
-  '@solidjs/router@0.16.3(solid-js@1.9.19)':
+  '@solidjs/router@1.0.3(solid-js@1.9.19)':
     dependencies:
       solid-js: 1.9.19
 
-  '@solidjs/testing-library@0.8.10(@solidjs/router@0.16.3(solid-js@1.9.19))(solid-js@1.9.19)':
+  '@solidjs/testing-library@0.8.10(@solidjs/router@1.0.3(solid-js@1.9.19))(solid-js@1.9.19)':
     dependencies:
       '@testing-library/dom': 10.4.2
       solid-js: 1.9.19
     optionalDependencies:
-      '@solidjs/router': 0.16.3(solid-js@1.9.19)
+      '@solidjs/router': 1.0.3(solid-js@1.9.19)
 
   '@standard-schema/spec@1.1.0': {}
 
