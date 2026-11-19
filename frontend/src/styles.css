@@ -467,18 +467,18 @@ h2 {
 
 .tile-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
   gap: 0.25rem;
 }
 
 .tile-action {
-  min-height: 1.65rem;
-  padding: 0.15rem 0.25rem;
+  min-height: 1.9rem;
+  padding: 0.2rem 0.25rem;
   overflow: hidden;
-  border: 1px solid color-mix(in srgb, currentcolor 40%, transparent);
-  border-radius: 0.3rem;
-  background: rgb(255 255 255 / 42%);
-  color: inherit;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--ink);
   font-size: 0.62rem;
   font-weight: 700;
   line-height: 1;
@@ -488,7 +488,8 @@ h2 {
 }
 
 .tile-action:hover:not([aria-disabled="true"]) {
-  background: rgb(255 255 255 / 70%);
+  border-color: var(--muted);
+  background: var(--surface-muted);
 }
 
 .tile-action[aria-disabled="true"],
@@ -501,6 +502,18 @@ h2 {
   border-color: var(--tile-accent);
   background: var(--tile-accent);
   color: var(--surface);
+}
+
+.tile-action-primary,
+.tile-action-primary.is-active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+.tile-action-primary:hover:not([aria-disabled="true"]) {
+  border-color: var(--accent-strong);
+  background: var(--accent-strong);
 }
 
 .tile-action.is-active[aria-disabled="true"] {
@@ -516,7 +529,7 @@ h2 {
   justify-content: center;
   padding: 0.2rem 0.35rem;
   border: 1px solid color-mix(in srgb, currentcolor 35%, transparent);
-  border-radius: 0.3rem;
+  border-radius: 999px;
   background: rgb(255 255 255 / 30%);
   color: inherit;
   font-size: 0.62rem;
@@ -1152,13 +1165,13 @@ h2 {
   }
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1300px) {
   .tile-amount {
     display: none;
   }
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1100px) {
   .tile-actions {
     grid-template-columns: 1fr;
   }

@@ -206,7 +206,7 @@ export function CalendarGrid(props: CalendarGridProps) {
                           <div class="tile-actions">
                             <button
                               type="button"
-                              class="tile-action"
+                              class="tile-action tile-action-primary"
                               classList={{
                                 "is-active": occurrence().status === "paid",
                               }}
