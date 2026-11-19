@@ -26,6 +26,9 @@ src/Billz.Api/wwwroot/
 # Test output
 e2e/test-results/
 e2e/playwright-report/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
 frontend/coverage/
 
 # Editors and OS

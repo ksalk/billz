@@ -36,8 +36,9 @@ Useful tasks:
 |---|---|
 | `mise run lint` | .NET formatting, Biome, TypeScript |
 | `mise run test` | xUnit and Vitest |
+| `mise run test:e2e` | Build and run the Playwright journey against the published app |
 | `mise run build` | Build the SPA and publish the API |
-| `mise run verify` | Lint, test and build |
+| `mise run verify` | Lint, test, build and end-to-end checks |
 | `mise run format` | Apply formatting |
 
 ## Data
