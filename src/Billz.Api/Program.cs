@@ -1,5 +1,8 @@
+using System.Text.Json;
+using Billz.Api.Api.Bills;
 using Billz.Api.Data;
 using Billz.Api.Infrastructure;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,10 +18,60 @@ builder.WebHost.ConfigureKestrel(options =>
     options.Limits.MaxRequestBodySize = ServerLimits.MaxRequestBodyBytes;
 });
 builder.Services.AddBillzDatabase(databasePath);
+builder.Services.Configure<RouteHandlerOptions>(options =>
+{
+    options.ThrowOnBadRequest = true;
+});
+builder.Services.ConfigureHttpJsonOptions(options => BillJson.Configure(options.SerializerOptions));
 
 var app = builder.Build();
 
 app.UseBillzSecurityHeaders();
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        if (context.Response.HasStarted)
+        {
+            return;
+        }
+
+        var exception = context.Features.Get<IExceptionHandlerFeature>()?.Error;
+
+        if (exception is OperationCanceledException)
+        {
+            context.Response.StatusCode = 499;
+            return;
+        }
+
+        var statusCode = exception switch
+        {
+            BadHttpRequestException badRequest => badRequest.StatusCode,
+            JsonException => StatusCodes.Status400BadRequest,
+            _ => StatusCodes.Status500InternalServerError,
+        };
+        var logger = context.RequestServices
+            .GetRequiredService<ILoggerFactory>()
+            .CreateLogger("Billz.Errors");
+
+        if (statusCode >= StatusCodes.Status500InternalServerError)
+        {
+            logger.LogError(exception, "Unhandled request error");
+        }
+        else
+        {
+            logger.LogWarning("Request rejected with status {StatusCode}", statusCode);
+        }
+
+        await Results.Problem(
+            statusCode: statusCode,
+            title:
+                statusCode is >= 400 and < 500
+                    ? "Invalid request"
+                    : "An unexpected error occurred"
+        ).ExecuteAsync(context);
+    });
+});
 
 app.Use(
     async (context, next) =>
@@ -81,6 +134,8 @@ app.MapMethods(
         }
     }
 );
+
+app.MapBillEndpoints();
 
 app.MapMethods(
     "/api/{**rest}",

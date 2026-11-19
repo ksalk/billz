@@ -512,6 +512,124 @@ public class ScheduleCalculatorTests
         );
     }
 
+    [Fact]
+    public void NextOccurrenceUsesClampedMonthlyDates()
+    {
+        Assert.Equal(
+            D(2026, 2, 28),
+            ScheduleCalculator.NextOccurrenceOnOrAfter(
+                BillFrequency.Monthly,
+                1,
+                D(2026, 1, 31),
+                null,
+                D(2026, 2, 1)
+            )
+        );
+        Assert.Equal(
+            D(2026, 3, 31),
+            ScheduleCalculator.NextOccurrenceOnOrAfter(
+                BillFrequency.Monthly,
+                1,
+                D(2026, 1, 31),
+                null,
+                D(2026, 3, 1)
+            )
+        );
+        Assert.Equal(
+            D(2026, 4, 30),
+            ScheduleCalculator.NextOccurrenceOnOrAfter(
+                BillFrequency.Monthly,
+                1,
+                D(2026, 1, 31),
+                null,
+                D(2026, 4, 1)
+            )
+        );
+    }
+
+    [Fact]
+    public void NextOccurrenceHandlesWeeklyYearlyAndOnce()
+    {
+        Assert.Equal(
+            D(2026, 12, 4),
+            ScheduleCalculator.NextOccurrenceOnOrAfter(
+                BillFrequency.Weekly,
+                2,
+                D(2026, 11, 20),
+                null,
+                D(2026, 11, 21)
+            )
+        );
+        Assert.Equal(
+            D(2030, 2, 28),
+            ScheduleCalculator.NextOccurrenceOnOrAfter(
+                BillFrequency.Yearly,
+                1,
+                D(2028, 2, 29),
+                null,
+                D(2029, 3, 1)
+            )
+        );
+        Assert.Equal(
+            D(2026, 12, 15),
+            ScheduleCalculator.NextOccurrenceOnOrAfter(
+                BillFrequency.Once,
+                1,
+                D(2026, 12, 15),
+                null,
+                D(2026, 12, 1)
+            )
+        );
+        Assert.Null(
+            ScheduleCalculator.NextOccurrenceOnOrAfter(
+                BillFrequency.Once,
+                1,
+                D(2026, 12, 15),
+                null,
+                D(2026, 12, 16)
+            )
+        );
+    }
+
+    [Fact]
+    public void NextOccurrenceRespectsTheEndDate()
+    {
+        Assert.Equal(
+            D(2026, 3, 31),
+            ScheduleCalculator.NextOccurrenceOnOrAfter(
+                BillFrequency.Monthly,
+                1,
+                D(2026, 1, 31),
+                D(2026, 3, 31),
+                D(2026, 3, 31)
+            )
+        );
+        Assert.Null(
+            ScheduleCalculator.NextOccurrenceOnOrAfter(
+                BillFrequency.Monthly,
+                1,
+                D(2026, 1, 31),
+                D(2026, 3, 31),
+                D(2026, 4, 1)
+            )
+        );
+    }
+
+    [Fact]
+    public void NextOccurrenceHandlesIntervalGreaterThanOne()
+    {
+        Assert.Equal(
+            D(2026, 5, 15),
+            ScheduleCalculator.NextOccurrenceOnOrAfter(
+                BillFrequency.Monthly,
+                3,
+                D(2026, 2, 15),
+                null,
+                D(2026, 3, 1)
+            )
+        );
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(61)]

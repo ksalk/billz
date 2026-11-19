@@ -108,6 +108,71 @@ public static class ScheduleCalculator
     }
 
     /// <summary>
+    /// Returns the first generated occurrence on or after <paramref name="onOrAfter"/>,
+    /// or null when the schedule has ended.
+    /// </summary>
+    public static DateOnly? NextOccurrenceOnOrAfter(
+        BillFrequency frequency,
+        int interval,
+        DateOnly startDate,
+        DateOnly? endDate,
+        DateOnly onOrAfter
+    )
+    {
+        Validate(frequency, interval, startDate, endDate, startDate, startDate);
+
+        if (onOrAfter <= startDate)
+        {
+            return startDate;
+        }
+
+        if (frequency == BillFrequency.Once)
+        {
+            return null;
+        }
+
+        DateOnly candidate;
+
+        if (frequency == BillFrequency.Weekly)
+        {
+            var stepDays = checked(interval * 7);
+            var offset = onOrAfter.DayNumber - startDate.DayNumber;
+            var index = (int)Math.Ceiling(offset / (double)stepDays);
+            var dayNumber = startDate.DayNumber + ((long)index * stepDays);
+
+            if (dayNumber > DateOnly.MaxValue.DayNumber)
+            {
+                return null;
+            }
+
+            candidate = DateOnly.FromDayNumber((int)dayNumber);
+        }
+        else
+        {
+            var monthInterval =
+                frequency == BillFrequency.Yearly ? checked(interval * 12) : interval;
+            var monthDelta = MonthDelta(startDate, onOrAfter);
+            var anchorIndex = monthDelta / monthInterval;
+            var current = TryMonthlyDate(startDate, anchorIndex * monthInterval);
+
+            while (current is not null && current < onOrAfter)
+            {
+                anchorIndex++;
+                current = TryMonthlyDate(startDate, anchorIndex * monthInterval);
+            }
+
+            if (current is null)
+            {
+                return null;
+            }
+
+            candidate = current.Value;
+        }
+
+        return endDate is null || candidate <= endDate ? candidate : null;
+    }
+
+    /// <summary>
     /// Checks whether <paramref name="date"/> is a generated occurrence. This
     /// agrees with <see cref="Occurrences"/> for any schedule and date, including
     /// clamped month-end dates.
