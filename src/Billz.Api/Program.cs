@@ -1,12 +1,20 @@
+using Billz.Api.Data;
 using Billz.Api.Infrastructure;
+using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var databasePath = DatabaseExtensions.ResolveDatabasePath(
+    builder.Configuration,
+    builder.Environment
+);
 
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.AddServerHeader = false;
     options.Limits.MaxRequestBodySize = ServerLimits.MaxRequestBodyBytes;
 });
+builder.Services.AddBillzDatabase(databasePath);
 
 var app = builder.Build();
 
@@ -48,7 +56,30 @@ app.UseBillzRequestGuard(
 app.MapMethods(
     "/api/health",
     ["GET", "HEAD"],
-    () => Results.Ok(new { status = "ok" })
+    async (
+        BillzDbContext database,
+        ILogger<Program> logger,
+        CancellationToken cancellationToken
+    ) =>
+    {
+        try
+        {
+            await database.Database.ExecuteSqlRawAsync("SELECT 1", cancellationToken);
+            return Results.Ok(new { status = "ok" });
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            logger.LogError(exception, "Database health check failed");
+            return Results.Problem(
+                statusCode: StatusCodes.Status503ServiceUnavailable,
+                title: "Database unavailable"
+            );
+        }
+    }
 );
 
 app.MapMethods(
@@ -62,6 +93,8 @@ app.MapFallbackToFile("index.html");
 app.Logger.LogWarning(
     "Authentication is disabled. Run Billz only on a trusted private network."
 );
+
+await app.MigrateBillzDatabaseAsync();
 
 app.Run();
 

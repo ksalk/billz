@@ -16,6 +16,7 @@ TestResults/
 *.db
 *.db-shm
 *.db-wal
+*.migrate.lock
 
 # Frontend
 node_modules/

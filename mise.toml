@@ -10,6 +10,7 @@ DOTNET_NOLOGO = "1"
 [tasks.setup]
 description = "Install .NET tools and all dependencies"
 run = [
+  "dotnet tool restore",
   "dotnet restore Billz.sln --locked-mode",
   "pnpm --dir frontend install --frozen-lockfile",
 ]

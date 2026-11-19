@@ -1,14 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Billz.Tests;
 
-public class HealthTests : IClassFixture<WebApplicationFactory<Program>>
+public class HealthTests : IClassFixture<BillzWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public HealthTests(WebApplicationFactory<Program> factory)
+    public HealthTests(BillzWebApplicationFactory factory)
     {
         _client = factory.CreateClient();
     }

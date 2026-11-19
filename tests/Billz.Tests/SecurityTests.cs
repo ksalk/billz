@@ -3,12 +3,12 @@ using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Billz.Tests;
 
-public class SecurityTests : IClassFixture<WebApplicationFactory<Program>>
+public class SecurityTests : IClassFixture<BillzWebApplicationFactory>
 {
-    private readonly WebApplicationFactory<Program> _clientFactory;
+    private readonly BillzWebApplicationFactory _clientFactory;
     private readonly HttpClient _client;
 
-    public SecurityTests(WebApplicationFactory<Program> factory)
+    public SecurityTests(BillzWebApplicationFactory factory)
     {
         _clientFactory = factory;
         _client = factory.CreateClient();

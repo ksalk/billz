@@ -1,6 +1,4 @@
 using System.Net;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Billz.Tests;
 
@@ -22,8 +20,10 @@ public class SpaTests
             await File.WriteAllTextAsync(indexPath, "<!doctype html><title>Billz</title>");
             await File.WriteAllTextAsync(assetPath, "console.log('billz');");
 
-            await using var factory = new WebApplicationFactory<Program>()
-                .WithWebHostBuilder(builder => builder.UseWebRoot(webRoot.FullName));
+            await using var factory = new BillzWebApplicationFactory
+            {
+                WebRoot = webRoot.FullName,
+            };
             var client = factory.CreateClient();
 
             var root = await client.GetAsync("/");

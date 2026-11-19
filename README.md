@@ -40,6 +40,23 @@ Useful tasks:
 | `mise run verify` | Lint, test and build |
 | `mise run format` | Apply formatting |
 
+## Data
+
+SQLite is the only datastore. By default the database lives in the platform's
+per-user data directory (`~/.local/share/billz/billz.db` on Linux); set
+`Billz__DatabasePath` to an absolute path to override it. Relative paths resolve
+against the application directory and are not recommended. The planned Docker
+image will use `/data/billz.db` on a named volume.
+
+Do not deploy over the data directory. Back up while Billz is stopped and copy
+`billz.db`, `billz.db-wal`, and `billz.db-shm` together, or use SQLite's
+`VACUUM INTO` on a quiesced database. A copy of `billz.db` alone can be stale
+because of WAL. Timestamps are stored and returned as UTC milliseconds.
+
+Runtime migrations run automatically at startup. Do not run
+`dotnet ef database update`; the design-time factory points at a throwaway file
+and will not update the real database.
+
 ## Planned container configuration
 
 These variables are consumed by the Docker Compose stack added with the

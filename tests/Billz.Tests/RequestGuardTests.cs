@@ -1,15 +1,14 @@
 using System.Net;
 using System.Text;
 using Billz.Api.Infrastructure;
-using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace Billz.Tests;
 
-public class RequestGuardTests : IClassFixture<WebApplicationFactory<Program>>
+public class RequestGuardTests : IClassFixture<BillzWebApplicationFactory>
 {
     private readonly HttpClient _client;
 
-    public RequestGuardTests(WebApplicationFactory<Program> factory)
+    public RequestGuardTests(BillzWebApplicationFactory factory)
     {
         // WebApplicationFactory defaults to the Development environment, which is
         // where the Vite origin allowlist comes from.
